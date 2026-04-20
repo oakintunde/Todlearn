@@ -1,20 +1,77 @@
 import { ArrowLeft, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
+
+/** Letter clips in `src/app/sounds/{Letter}.mp3` — same bundle as Phonics. */
+const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
+const letterSoundUrl = (letter: string): string | undefined => {
+  const suffix = `${letter.toUpperCase()}.mp3`;
+  for (const [path, url] of Object.entries(letterSoundUrls)) {
+    if (path.endsWith(suffix)) return url;
+  }
+  return undefined;
+};
 
 export default function Words() {
   const navigate = useNavigate();
+  const letterAudioRef = useRef<HTMLAudioElement | null>(null);
   const [currentWord, setCurrentWord] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [pendingAdvance, setPendingAdvance] = useState(false);
 
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    letterAudioRef.current?.pause();
+    letterAudioRef.current = null;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const playLetterSound = (letter: string) => {
+    if (typeof window === "undefined") return;
+    const L = letter.toUpperCase();
+    if (!/[A-Z]/.test(L)) return;
+    window.speechSynthesis.cancel();
+    letterAudioRef.current?.pause();
+    const url = letterSoundUrl(L);
+    if (!url) {
+      speak(L);
+      return;
+    }
+    const audio = new Audio();
+    letterAudioRef.current = audio;
+    audio.preload = "auto";
+    let settled = false;
+    const fallback = () => {
+      if (settled) return;
+      settled = true;
+      if (letterAudioRef.current === audio) letterAudioRef.current = null;
+      speak(L);
+    };
+    audio.addEventListener("error", fallback, { once: true });
+    audio.src = url;
+    audio.load();
+    void audio
+      .play()
+      .then(() => {
+        settled = true;
+      })
+      .catch(fallback);
+    audio.addEventListener(
+      "ended",
+      () => {
+        if (letterAudioRef.current === audio) letterAudioRef.current = null;
+      },
+      { once: true },
+    );
   };
 
   const words = [
@@ -157,12 +214,15 @@ export default function Words() {
           </div>
           <div className="flex justify-center gap-2 mb-4">
             {current.letters.map((letter, idx) => (
-              <div
-                key={idx}
-                className="w-14 h-14 bg-white/90 rounded-xl flex items-center justify-center text-2xl font-bold text-gray-700 shadow-md"
+              <button
+                type="button"
+                key={`${letter}-${idx}`}
+                onClick={() => playLetterSound(letter)}
+                className="w-14 h-14 bg-white/90 rounded-xl flex items-center justify-center text-2xl font-bold text-gray-700 shadow-md hover:bg-white hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                aria-label={`Play ${letter} sound`}
               >
                 {letter}
-              </div>
+              </button>
             ))}
           </div>
           <button
