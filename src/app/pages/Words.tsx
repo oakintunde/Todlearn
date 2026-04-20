@@ -1,8 +1,8 @@
-import { ArrowLeft, Volume2 } from "lucide-react";
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { ArrowLeft, Volume2 } from "lucide-react"; // Back + volume UI
+import { useRef, useState } from "react"; // Audio ref + quiz state
+import { useNavigate } from "react-router"; // Home navigation
 
-import clapUrl from "../sounds/clap.mp3?url";
+import clapUrl from "../sounds/clap.mp3?url"; // Bundled applause clip URL
 
 /**
  * Simple Words — picture + spelling tiles + multiple-choice quiz.
@@ -21,22 +21,22 @@ import clapUrl from "../sounds/clap.mp3?url";
 
 /** All `.mp3` under `sounds/` at build time; letter files must be named `A.mp3` … `Z.mp3` (see `letterSoundUrl`). */
 const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
-  eager: true,
-  query: "?url",
-  import: "default",
+  eager: true, // Resolve URLs at build
+  query: "?url", // Vite asset URL import
+  import: "default", // Default export = URL string
 });
 
 /** Resolve bundled URL for a single uppercase letter file, e.g. `T` → `…/T.mp3`. Ignores non-letter assets like `clap.mp3`. */
 const letterSoundUrl = (letter: string): string | undefined => {
-  const suffix = `${letter.toUpperCase()}.mp3`;
+  const suffix = `${letter.toUpperCase()}.mp3`; // Normalize to uppercase filename
   for (const [path, url] of Object.entries(letterSoundUrls)) {
-    if (path.endsWith(suffix)) return url;
+    if (path.endsWith(suffix)) return url; // Match bundled path suffix
   }
-  return undefined;
+  return undefined; // No clip (e.g. missing file)
 };
 
 export default function Words() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Router
   /** Currently playing `HTMLAudioElement` (letter clip or clap), or null. */
   const letterAudioRef = useRef<HTMLAudioElement | null>(null);
   /** Index into `words`. */
@@ -48,51 +48,51 @@ export default function Words() {
 
   /** Speak text with US English TTS; stops any in-flight letter/clap audio first. */
   const speak = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    letterAudioRef.current?.pause();
-    letterAudioRef.current = null;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return; // Guard
+    letterAudioRef.current?.pause(); // Stop MP3/clap
+    letterAudioRef.current = null; // Drop ref
+    window.speechSynthesis.cancel(); // Clear speech queue
+    const utterance = new SpeechSynthesisUtterance(text); // New utterance
+    utterance.lang = "en-US"; // Locale
+    utterance.rate = 0.9; // Slightly slow for clarity
+    window.speechSynthesis.speak(utterance); // Speak
   };
 
   /** Play `{Letter}.mp3`; on missing file or `play()` error, fall back to TTS letter name. */
   const playLetterSound = (letter: string) => {
-    if (typeof window === "undefined") return;
-    const L = letter.toUpperCase();
-    if (!/[A-Z]/.test(L)) return;
-    window.speechSynthesis.cancel();
-    letterAudioRef.current?.pause();
-    const url = letterSoundUrl(L);
+    if (typeof window === "undefined") return; // SSR guard
+    const L = letter.toUpperCase(); // File names are uppercase
+    if (!/[A-Z]/.test(L)) return; // Ignore non-letters
+    window.speechSynthesis.cancel(); // No TTS overlap
+    letterAudioRef.current?.pause(); // One audio at a time
+    const url = letterSoundUrl(L); // Lookup bundled mp3
     if (!url) {
-      speak(L);
+      speak(L); // Letter name via TTS
       return;
     }
-    const audio = new Audio();
-    letterAudioRef.current = audio;
-    audio.preload = "auto";
-    let settled = false;
+    const audio = new Audio(); // Element for this play
+    letterAudioRef.current = audio; // Track active clip
+    audio.preload = "auto"; // Fetch hint
+    let settled = false; // Coalesce fallback
     const fallback = () => {
-      if (settled) return;
-      settled = true;
-      if (letterAudioRef.current === audio) letterAudioRef.current = null;
-      speak(L);
+      if (settled) return; // Already handled
+      settled = true; // Lock
+      if (letterAudioRef.current === audio) letterAudioRef.current = null; // Clear ref
+      speak(L); // Audible fallback
     };
-    audio.addEventListener("error", fallback, { once: true });
-    audio.src = url;
-    audio.load();
+    audio.addEventListener("error", fallback, { once: true }); // Decode errors
+    audio.src = url; // Bind URL
+    audio.load(); // Start load
     void audio
-      .play()
+      .play() // Async play
       .then(() => {
-        settled = true;
+        settled = true; // Success path
       })
-      .catch(fallback);
+      .catch(fallback); // Autoplay / IO failure
     audio.addEventListener(
       "ended",
       () => {
-        if (letterAudioRef.current === audio) letterAudioRef.current = null;
+        if (letterAudioRef.current === audio) letterAudioRef.current = null; // Natural end cleanup
       },
       { once: true },
     );
@@ -100,21 +100,21 @@ export default function Words() {
 
   /** Correct-answer feedback: `clap.mp3`, reusing `letterAudioRef` so it replaces any letter clip. */
   const playClap = () => {
-    if (typeof window === "undefined") return;
-    letterAudioRef.current?.pause();
-    letterAudioRef.current = null;
-    const audio = new Audio();
-    letterAudioRef.current = audio;
-    audio.preload = "auto";
-    audio.src = clapUrl;
-    audio.load();
+    if (typeof window === "undefined") return; // SSR guard
+    letterAudioRef.current?.pause(); // Stop letter clip
+    letterAudioRef.current = null; // Clear slot
+    const audio = new Audio(); // SFX element
+    letterAudioRef.current = audio; // Reuse same ref channel
+    audio.preload = "auto"; // Prefetch clap
+    audio.src = clapUrl; // Static import URL
+    audio.load(); // Prepare buffer
     void audio.play().catch(() => {
-      if (letterAudioRef.current === audio) letterAudioRef.current = null;
+      if (letterAudioRef.current === audio) letterAudioRef.current = null; // Play failure cleanup
     });
     audio.addEventListener(
       "ended",
       () => {
-        if (letterAudioRef.current === audio) letterAudioRef.current = null;
+        if (letterAudioRef.current === audio) letterAudioRef.current = null; // After clap ends
       },
       { once: true },
     );
@@ -125,6 +125,7 @@ export default function Words() {
    * `correct` = index of right option in `options`, `color` = Tailwind gradient classes.
    */
   const words = [
+    // --- Word slide: CAT ---
     {
       word: "CAT",
       letters: ["C", "A", "T"],
@@ -133,6 +134,7 @@ export default function Words() {
       correct: 1,
       color: "from-orange-400 to-red-500",
     },
+    // --- Word slide: SUN ---
     {
       word: "SUN",
       letters: ["S", "U", "N"],
@@ -141,6 +143,7 @@ export default function Words() {
       correct: 0,
       color: "from-yellow-400 to-orange-500",
     },
+    // --- Word slide: BEE ---
     {
       word: "BEE",
       letters: ["B", "E", "E"],
@@ -149,6 +152,7 @@ export default function Words() {
       correct: 1,
       color: "from-amber-400 to-yellow-500",
     },
+    // --- Word slide: DOG ---
     {
       word: "DOG",
       letters: ["D", "O", "G"],
@@ -157,6 +161,7 @@ export default function Words() {
       correct: 0,
       color: "from-blue-400 to-indigo-500",
     },
+    // --- Word slide: HAT ---
     {
       word: "HAT",
       letters: ["H", "A", "T"],
@@ -165,6 +170,7 @@ export default function Words() {
       correct: 0,
       color: "from-purple-400 to-pink-500",
     },
+    // --- Word slide: FISH ---
     {
       word: "FISH",
       letters: ["F", "I", "S", "H"],
@@ -173,6 +179,7 @@ export default function Words() {
       correct: 1,
       color: "from-cyan-400 to-blue-500",
     },
+    // --- Word slide: BALL ---
     {
       word: "BALL",
       letters: ["B", "A", "L", "L"],
@@ -181,6 +188,7 @@ export default function Words() {
       correct: 0,
       color: "from-green-400 to-emerald-500",
     },
+    // --- Word slide: CAR ---
     {
       word: "CAR",
       letters: ["C", "A", "R"],
@@ -189,6 +197,7 @@ export default function Words() {
       correct: 0,
       color: "from-red-400 to-pink-500",
     },
+    // --- Word slide: TREE ---
     {
       word: "TREE",
       letters: ["T", "R", "E", "E"],
@@ -197,6 +206,7 @@ export default function Words() {
       correct: 0,
       color: "from-lime-400 to-green-500",
     },
+    // --- Word slide: BOOK ---
     {
       word: "BOOK",
       letters: ["B", "O", "O", "K"],
@@ -205,6 +215,7 @@ export default function Words() {
       correct: 1,
       color: "from-indigo-400 to-purple-500",
     },
+    // --- Word slide: MOON ---
     {
       word: "MOON",
       letters: ["M", "O", "O", "N"],
@@ -213,6 +224,7 @@ export default function Words() {
       correct: 0,
       color: "from-gray-400 to-slate-500",
     },
+    // --- Word slide: STAR ---
     {
       word: "STAR",
       letters: ["S", "T", "A", "R"],
@@ -223,90 +235,102 @@ export default function Words() {
     }
   ];
 
-  const current = words[currentWord];
+  const current = words[currentWord]; // Active curriculum object
 
   /** Quiz tap: wrong → “Oh no!” + retry; correct → clap + short lock + advance or end. */
   const handleAnswer = (idx: number) => {
-    if (pendingAdvance) return;
-    setSelectedAnswer(idx);
+    if (pendingAdvance) return; // Ignore taps during post-correct lock
+    setSelectedAnswer(idx); // Show selection styling
     if (idx === current.correct) {
-      window.speechSynthesis.cancel();
-      playClap();
-      setPendingAdvance(true);
+      window.speechSynthesis.cancel(); // No overlapping speech with clap moment
+      playClap(); // Positive SFX
+      setPendingAdvance(true); // Lock quiz grid
       setTimeout(() => {
-        setCurrentWord((w) => (w < words.length - 1 ? w + 1 : w));
-        setSelectedAnswer(null);
-        setPendingAdvance(false);
-      }, 1500);
+        setCurrentWord((w) => (w < words.length - 1 ? w + 1 : w)); // Next word or stay on last
+        setSelectedAnswer(null); // Clear selection for fresh slide
+        setPendingAdvance(false); // Re-enable quiz
+      }, 1500); // Pause before advancing
     } else {
-      speak("Oh no!");
+      speak("Oh no!"); // Gentle wrong feedback; child can retry
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
+      {/* Words activity outer shell */}
       <div className="w-full max-w-sm bg-gradient-to-b from-green-50 to-emerald-50 rounded-3xl p-6 space-y-6 shadow-2xl">
+        {/* Card stack */}
         <div className="flex items-center gap-4">
+          {/* Header */}
           <button
             type="button"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/")} // Home
             className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-transform"
           >
             <ArrowLeft className="w-6 h-6 text-green-600" />
+            {/* Back icon */}
           </button>
           <h2 className="text-2xl font-bold text-green-800">Simple Words</h2>
+          {/* Title */}
         </div>
 
         <div className="bg-white rounded-3xl p-8 flex items-center justify-center shadow-md">
           <div className="text-9xl">{current.emoji}</div>
+          {/* Illustration for target word */}
         </div>
 
         <div
           className={`bg-gradient-to-br ${current.color} rounded-3xl p-6 text-center shadow-xl`}
         >
+          {/* Word panel: uses per-slide gradient */}
           <div className="text-5xl text-white font-bold mb-4">
             {current.word}
+            {/* Uppercase answer word */}
           </div>
           <div className="flex justify-center gap-2 mb-4">
             {current.letters.map((letter, idx) => (
               <button
                 type="button"
-                key={`${letter}-${idx}`}
-                onClick={() => playLetterSound(letter)}
+                key={`${letter}-${idx}`} // Stable across duplicate letters
+                onClick={() => playLetterSound(letter)} // Letter mp3
                 className="w-14 h-14 bg-white/90 rounded-xl flex items-center justify-center text-2xl font-bold text-gray-700 shadow-md hover:bg-white hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                 aria-label={`Play ${letter} sound`}
               >
                 {letter}
+                {/* One tile per spelling position */}
               </button>
             ))}
           </div>
           <button
             type="button"
-            onClick={() => speak(current.word.toLowerCase())}
+            onClick={() => speak(current.word.toLowerCase())} // Whole word TTS
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-green-600" />
             <span className="font-bold text-green-800">
               Say "{current.word}"
+              {/* Label shows uppercase word */}
             </span>
           </button>
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-md">
+          {/* Multiple choice */}
           <h3 className="text-sm font-bold text-green-700 mb-3 text-center">
             Which word matches?
+            {/* Prompt */}
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {current.options.map((option, idx) => {
-              const isCorrect = idx === current.correct;
-              const isSelected = selectedAnswer === idx;
+              const isCorrect = idx === current.correct; // Compare to curriculum index
+              const isSelected = selectedAnswer === idx; // Child’s last tap
 
               return (
                 <button
                   type="button"
-                  key={idx}
-                  onClick={() => handleAnswer(idx)}
-                  disabled={pendingAdvance}
+                  key={idx} // Option index key
+                  onClick={() => handleAnswer(idx)} // Grade + feedback
+                  disabled={pendingAdvance} // Locked after correct until timeout
                   className={`h-14 rounded-xl font-bold text-sm transition-all ${
                     isSelected && isCorrect
                       ? "bg-green-500 text-white scale-105"
@@ -316,7 +340,9 @@ export default function Words() {
                   }`}
                 >
                   {option}
+                  {/* Choice label */}
                   {isSelected && isCorrect && <div className="text-xl">✓</div>}
+                  {/* Checkmark on correct pick */}
                 </button>
               );
             })}
@@ -324,9 +350,10 @@ export default function Words() {
         </div>
 
         <div className="flex gap-2 justify-center pt-2">
+          {/* Linear lesson progress (decorative segments) */}
           {words.map((_, idx) => (
             <div
-              key={idx}
+              key={idx} // Word index
               className={`h-2 rounded-full transition-all ${
                 idx === currentWord
                   ? "w-12 bg-green-600"
