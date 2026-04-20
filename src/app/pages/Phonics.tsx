@@ -40,7 +40,7 @@ export default function Phonics() {
     },
     {
       letter: "E",
-      sound: "Eh",
+      sound: "Ah",
       examples: ["🥚 Egg", "🐘 Elephant"],
       color: "from-purple-400 to-pink-500",
     },
