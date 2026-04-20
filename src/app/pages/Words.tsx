@@ -4,13 +4,29 @@ import { useNavigate } from "react-router";
 
 import clapUrl from "../sounds/clap.mp3?url";
 
-/** Letter clips in `src/app/sounds/{Letter}.mp3` — same bundle as Phonics. */
+/**
+ * Simple Words — picture + spelling tiles + multiple-choice quiz.
+ *
+ * **Audio**
+ * - Per-letter taps: `src/app/sounds/{A-Z}.mp3` (Vite glob); TTS fallback if missing or play fails.
+ * - “Say …”: whole word via `speechSynthesis` (lowercase for natural reading).
+ * - Correct quiz pick: `clap.mp3`; wrong pick: TTS “Oh no!”.
+ * - One shared `letterAudioRef` so letter clips, clap, and TTS do not overlap awkwardly (`speak` / `playLetterSound` / `playClap` coordinate).
+ *
+ * **Quiz**
+ * - Wrong answers stay tappable until correct (only `selectedAnswer` updates).
+ * - After correct: `pendingAdvance` disables options ~1.5s, then next word (or stay on last).
+ * - Quiz state is advanced in that timeout, not in a `useEffect` on `currentWord`, to satisfy React lint rules.
+ */
+
+/** All `.mp3` under `sounds/` at build time; letter files must be named `A.mp3` … `Z.mp3` (see `letterSoundUrl`). */
 const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
   eager: true,
   query: "?url",
   import: "default",
 });
 
+/** Resolve bundled URL for a single uppercase letter file, e.g. `T` → `…/T.mp3`. Ignores non-letter assets like `clap.mp3`. */
 const letterSoundUrl = (letter: string): string | undefined => {
   const suffix = `${letter.toUpperCase()}.mp3`;
   for (const [path, url] of Object.entries(letterSoundUrls)) {
@@ -21,11 +37,16 @@ const letterSoundUrl = (letter: string): string | undefined => {
 
 export default function Words() {
   const navigate = useNavigate();
+  /** Currently playing `HTMLAudioElement` (letter clip or clap), or null. */
   const letterAudioRef = useRef<HTMLAudioElement | null>(null);
+  /** Index into `words`. */
   const [currentWord, setCurrentWord] = useState(0);
+  /** Index into `current.options` for the quiz tile the child last tapped. */
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  /** True after a correct answer until the advance timeout fires; blocks further quiz taps. */
   const [pendingAdvance, setPendingAdvance] = useState(false);
 
+  /** Speak text with US English TTS; stops any in-flight letter/clap audio first. */
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     letterAudioRef.current?.pause();
@@ -37,6 +58,7 @@ export default function Words() {
     window.speechSynthesis.speak(utterance);
   };
 
+  /** Play `{Letter}.mp3`; on missing file or `play()` error, fall back to TTS letter name. */
   const playLetterSound = (letter: string) => {
     if (typeof window === "undefined") return;
     const L = letter.toUpperCase();
@@ -76,6 +98,7 @@ export default function Words() {
     );
   };
 
+  /** Correct-answer feedback: `clap.mp3`, reusing `letterAudioRef` so it replaces any letter clip. */
   const playClap = () => {
     if (typeof window === "undefined") return;
     letterAudioRef.current?.pause();
@@ -97,6 +120,10 @@ export default function Words() {
     );
   };
 
+  /**
+   * Static curriculum: `word` + `letters` for tiles, `emoji` for art, `options` (3 choices),
+   * `correct` = index of right option in `options`, `color` = Tailwind gradient classes.
+   */
   const words = [
     {
       word: "CAT",
@@ -198,6 +225,7 @@ export default function Words() {
 
   const current = words[currentWord];
 
+  /** Quiz tap: wrong → “Oh no!” + retry; correct → clap + short lock + advance or end. */
   const handleAnswer = (idx: number) => {
     if (pendingAdvance) return;
     setSelectedAnswer(idx);
