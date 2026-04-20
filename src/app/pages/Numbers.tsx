@@ -14,9 +14,24 @@ export default function Numbers() {
     window.speechSynthesis.speak(utterance);
   };
   const numbers = [
-    { num: 1, word: "One", emoji: "⭐", color: "from-pink-400 to-red-500" },
-    { num: 2, word: "Two", emoji: "🦋", color: "from-purple-400 to-pink-500" },
-    { num: 3, word: "Three", emoji: "🍎", color: "from-blue-400 to-cyan-500" },
+    {
+      num: 1,
+      word: "One",
+      emoji: "⭐",
+      color: "from-pink-400 to-red-500",
+    },
+    {
+      num: 2,
+      word: "Two",
+      emoji: "🦋",
+      color: "from-purple-400 to-pink-500",
+    },
+    {
+      num: 3,
+      word: "Three",
+      emoji: "🍎",
+      color: "from-blue-400 to-cyan-500",
+    },
     {
       num: 4,
       word: "Four",
@@ -76,7 +91,7 @@ export default function Numbers() {
           </div>
           <button
             type="button"
-            onClick={() => speak(`${current.word}. ${current.num}`)}
+            onClick={() => speak(current.word)}
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-blue-600" />

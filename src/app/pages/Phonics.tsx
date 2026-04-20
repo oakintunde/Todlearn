@@ -1,17 +1,85 @@
 import { ArrowLeft, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
+
+/**
+ * Letter clips in `src/app/sounds/{Letter}.mp3` (e.g. `A.mp3`).
+ * Resolved at build time via Vite; add a file per letter you need.
+ */
+const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
+const letterSoundUrl = (letter: string): string | undefined => {
+  const suffix = `${letter}.mp3`;
+  for (const [path, url] of Object.entries(letterSoundUrls)) {
+    if (path.endsWith(suffix)) return url;
+  }
+  return undefined;
+};
+
+/** Text after the emoji, e.g. "🍎 Apple" → "Apple", "🍦 Ice cream" → "Ice cream". */
+const exampleWord = (example: string) =>
+  example.split(/\s+/).slice(1).join(" ").trim();
 
 export default function Phonics() {
   const navigate = useNavigate();
   const [currentLetter, setCurrentLetter] = useState(0);
+  const letterAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    letterAudioRef.current?.pause();
+    letterAudioRef.current = null;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const playLetterSound = (letter: string, phonemeHint: string) => {
+    if (typeof window === "undefined") return;
+    window.speechSynthesis.cancel();
+    letterAudioRef.current?.pause();
+    const url = letterSoundUrl(letter);
+    if (!url) {
+      speak(`${letter}. ${phonemeHint}`);
+      return;
+    }
+    const audio = new Audio();
+    letterAudioRef.current = audio;
+    audio.preload = "auto";
+    let settled = false;
+    const fallback = () => {
+      if (settled) return;
+      settled = true;
+      if (letterAudioRef.current === audio) letterAudioRef.current = null;
+      speak(`${letter}. ${phonemeHint}`);
+    };
+    audio.addEventListener("error", fallback, { once: true });
+    audio.src = url;
+    audio.load();
+    void audio
+      .play()
+      .then(() => {
+        settled = true;
+      })
+      .catch(fallback);
+    audio.addEventListener(
+      "ended",
+      () => {
+        if (letterAudioRef.current === audio) letterAudioRef.current = null;
+      },
+      { once: true },
+    );
+  };
+
+  const speakExampleWord = (example: string) => {
+    const word = exampleWord(example);
+    if (word) speak(word);
   };
   const letters = [
     {
@@ -71,7 +139,7 @@ export default function Phonics() {
     {
       letter: "J",
       sound: "Juh",
-      examples: ["🧃 Juice", "🦘 Kangaroo"],
+      examples: ["🧃 Juice", "🐆 Jaguar"],
       color: "from-pink-400 to-rose-500",
     },
     {
@@ -196,7 +264,7 @@ export default function Phonics() {
           </div>
           <button
             type="button"
-            onClick={() => speak(`${current.letter}. ${current.sound}`)}
+            onClick={() => playLetterSound(current.letter, current.sound)}
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-purple-600" />
@@ -217,11 +285,11 @@ export default function Phonics() {
             >
               <div className="text-3xl">{example.split(" ")[0]}</div>
               <div className="text-xl font-bold text-gray-700">
-                {example.split(" ")[1]}
+                {exampleWord(example)}
               </div>
               <button
                 type="button"
-                onClick={() => speak(example.split(" ").slice(1).join(" "))}
+                onClick={() => speakExampleWord(example)}
                 className="ml-auto w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"
               >
                 <Volume2 className="w-5 h-5 text-purple-600" />

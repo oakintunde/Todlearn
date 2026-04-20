@@ -1,11 +1,21 @@
-import { useNavigate } from "react-router";
 import { ArrowLeft, Volume2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function Words() {
   const navigate = useNavigate();
   const [currentWord, setCurrentWord] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [pendingAdvance, setPendingAdvance] = useState(false);
+
+  const speak = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
 
   const words = [
     {
@@ -32,21 +42,91 @@ export default function Words() {
       correct: 1,
       color: "from-amber-400 to-yellow-500",
     },
+    {
+      word: "DOG",
+      letters: ["D", "O", "G"],
+      emoji: "🐶",
+      options: ["DOG", "LOG", "FOG"],
+      correct: 0,
+      color: "from-blue-400 to-indigo-500",
+    },
+    {
+      word: "HAT",
+      letters: ["H", "A", "T"],
+      emoji: "🎩",
+      options: ["HAT", "BAT", "MAT"],
+      correct: 0,
+      color: "from-purple-400 to-pink-500",
+    },
+    {
+      word: "FISH",
+      letters: ["F", "I", "S", "H"],
+      emoji: "🐟",
+      options: ["DISH", "FISH", "WISH"],
+      correct: 1,
+      color: "from-cyan-400 to-blue-500",
+    },
+    {
+      word: "BALL",
+      letters: ["B", "A", "L", "L"],
+      emoji: "⚽",
+      options: ["BALL", "CALL", "TALL"],
+      correct: 0,
+      color: "from-green-400 to-emerald-500",
+    },
+    {
+      word: "CAR",
+      letters: ["C", "A", "R"],
+      emoji: "🚗",
+      options: ["CAR", "BAR", "FAR"],
+      correct: 0,
+      color: "from-red-400 to-pink-500",
+    },
+    {
+      word: "TREE",
+      letters: ["T", "R", "E", "E"],
+      emoji: "🌳",
+      options: ["TREE", "FREE", "BEE"],
+      correct: 0,
+      color: "from-lime-400 to-green-500",
+    },
+    {
+      word: "BOOK",
+      letters: ["B", "O", "O", "K"],
+      emoji: "📚",
+      options: ["LOOK", "BOOK", "COOK"],
+      correct: 1,
+      color: "from-indigo-400 to-purple-500",
+    },
+    {
+      word: "MOON",
+      letters: ["M", "O", "O", "N"],
+      emoji: "🌙",
+      options: ["MOON", "SOON", "NOON"],
+      correct: 0,
+      color: "from-gray-400 to-slate-500",
+    },
+    {
+      word: "STAR",
+      letters: ["S", "T", "A", "R"],
+      emoji: "⭐",
+      options: ["STAR", "CAR", "FAR"],
+      correct: 0,
+      color: "from-yellow-300 to-yellow-500",
+    }
   ];
 
   const current = words[currentWord];
 
   const handleAnswer = (idx: number) => {
+    if (pendingAdvance) return;
     setSelectedAnswer(idx);
     if (idx === current.correct) {
+      setPendingAdvance(true);
       setTimeout(() => {
-        setCurrentWord((w) => {
-          if (w < words.length - 1) {
-            queueMicrotask(() => setSelectedAnswer(null));
-            return w + 1;
-          }
-          return w;
-        });
+        setCurrentWord((w) => (w < words.length - 1 ? w + 1 : w));
+        setSelectedAnswer(null);
+        setPendingAdvance(false);
       }, 1500);
     }
   };
@@ -87,6 +167,7 @@ export default function Words() {
           </div>
           <button
             type="button"
+            onClick={() => speak(current.word.toLowerCase())}
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-green-600" />
@@ -110,7 +191,7 @@ export default function Words() {
                   type="button"
                   key={idx}
                   onClick={() => handleAnswer(idx)}
-                  disabled={selectedAnswer !== null}
+                  disabled={pendingAdvance}
                   className={`h-14 rounded-xl font-bold text-sm transition-all ${
                     isSelected && isCorrect
                       ? "bg-green-500 text-white scale-105"
