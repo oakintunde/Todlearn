@@ -1,12 +1,12 @@
-import { useNavigate } from "react-router";
-import { ArrowLeft, RotateCcw, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, RotateCcw } from "lucide-react";
 import {
-  useState,
-  useRef,
   useEffect,
+  useRef,
+  useState,
   type MouseEvent,
   type TouchEvent,
 } from "react";
+import { useNavigate } from "react-router";
 
 export default function Tracing() {
   const navigate = useNavigate();
@@ -18,8 +18,36 @@ export default function Tracing() {
   const completionTimerRef = useRef<number | null>(null);
   const isDrawingRef = useRef(false);
 
-  const letters = ["A", "B", "C", "D", "E"];
-  const numbers = ["1", "2", "3", "4", "5"];
+  const letters = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+  ];
+
+  const numbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const items = mode === "letters" ? letters : numbers;
   const current = items[currentIndex];
 
@@ -132,7 +160,9 @@ export default function Tracing() {
             >
               <ArrowLeft className="w-6 h-6 text-purple-600" />
             </button>
-            <h2 className="text-2xl font-bold text-purple-800">Trace & Learn</h2>
+            <h2 className="text-2xl font-bold text-purple-800">
+              Trace & Learn
+            </h2>
           </div>
           <button
             type="button"
@@ -203,7 +233,9 @@ export default function Tracing() {
             <div className="absolute inset-0 bg-green-500/10 rounded-3xl flex items-center justify-center pointer-events-none">
               <div className="bg-white rounded-2xl p-4 shadow-xl flex flex-col items-center gap-2">
                 <CheckCircle className="w-12 h-12 text-green-500" />
-                <p className="text-lg font-bold text-green-700">Great Job! 🎉</p>
+                <p className="text-lg font-bold text-green-700">
+                  Great Job! 🎉
+                </p>
               </div>
             </div>
           )}

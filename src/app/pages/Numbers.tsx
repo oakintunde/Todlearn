@@ -1,16 +1,44 @@
-import { useNavigate } from "react-router";
 import { ArrowLeft, Volume2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function Numbers() {
   const navigate = useNavigate();
   const [currentNumber, setCurrentNumber] = useState(2);
+  const speak = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
   const numbers = [
     { num: 1, word: "One", emoji: "⭐", color: "from-pink-400 to-red-500" },
     { num: 2, word: "Two", emoji: "🦋", color: "from-purple-400 to-pink-500" },
     { num: 3, word: "Three", emoji: "🍎", color: "from-blue-400 to-cyan-500" },
-    { num: 4, word: "Four", emoji: "🌸", color: "from-green-400 to-emerald-500" },
-    { num: 5, word: "Five", emoji: "🐠", color: "from-yellow-400 to-orange-500" },
+    {
+      num: 4,
+      word: "Four",
+      emoji: "🌸",
+      color: "from-green-400 to-emerald-500",
+    },
+    {
+      num: 5,
+      word: "Five",
+      emoji: "🐠",
+      color: "from-yellow-400 to-orange-500",
+    },
+    { num: 6, word: "Six", emoji: "🌙", color: "from-indigo-400 to-blue-500" },
+    {
+      num: 7,
+      word: "Seven",
+      emoji: "🌈",
+      color: "from-pink-500 to-yellow-500",
+    },
+    { num: 8, word: "Eight", emoji: "🧸", color: "from-rose-400 to-pink-600" },
+    { num: 9, word: "Nine", emoji: "🚀", color: "from-sky-400 to-indigo-500" },
+    { num: 10, word: "Ten", emoji: "🎉", color: "from-orange-400 to-red-500" },
   ];
 
   const current = numbers[currentNumber];
@@ -40,14 +68,21 @@ export default function Numbers() {
         <div
           className={`bg-gradient-to-br ${current.color} rounded-3xl p-8 text-center shadow-xl`}
         >
-          <div className="text-9xl text-white font-bold mb-2">{current.num}</div>
-          <div className="text-3xl text-white font-bold mb-4">{current.word}</div>
+          <div className="text-9xl text-white font-bold mb-2">
+            {current.num}
+          </div>
+          <div className="text-3xl text-white font-bold mb-4">
+            {current.word}
+          </div>
           <button
             type="button"
+            onClick={() => speak(`${current.word}. ${current.num}`)}
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-blue-800">Say "{current.word}"</span>
+            <span className="font-bold text-blue-800">
+              Say "{current.word}"
+            </span>
           </button>
         </div>
 

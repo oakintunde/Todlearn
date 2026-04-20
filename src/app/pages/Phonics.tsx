@@ -1,14 +1,22 @@
-import { useNavigate } from "react-router";
 import { ArrowLeft, Volume2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function Phonics() {
   const navigate = useNavigate();
   const [currentLetter, setCurrentLetter] = useState(0);
+  const speak = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
   const letters = [
     {
       letter: "A",
-      sound: "Aa",
+      sound: "Ah",
       examples: ["🍎 Apple", "🐜 Ant"],
       color: "from-red-400 to-pink-500",
     },
@@ -29,6 +37,138 @@ export default function Phonics() {
       sound: "Duh",
       examples: ["🐕 Dog", "🦆 Duck"],
       color: "from-yellow-400 to-orange-500",
+    },
+    {
+      letter: "E",
+      sound: "Eh",
+      examples: ["🥚 Egg", "🐘 Elephant"],
+      color: "from-purple-400 to-pink-500",
+    },
+    {
+      letter: "F",
+      sound: "Fuh",
+      examples: ["🐟 Fish", "🔥 Fire"],
+      color: "from-cyan-400 to-blue-500",
+    },
+    {
+      letter: "G",
+      sound: "Guh",
+      examples: ["🦒 Giraffe", "🍇 Grapes"],
+      color: "from-green-500 to-lime-500",
+    },
+    {
+      letter: "H",
+      sound: "Huh",
+      examples: ["🏠 House", "🐎 Horse"],
+      color: "from-orange-400 to-red-500",
+    },
+    {
+      letter: "I",
+      sound: "Ih",
+      examples: ["🍦 Ice cream", "🐛 Insect"],
+      color: "from-indigo-400 to-purple-500",
+    },
+    {
+      letter: "J",
+      sound: "Juh",
+      examples: ["🧃 Juice", "🦘 Kangaroo"],
+      color: "from-pink-400 to-rose-500",
+    },
+    {
+      letter: "K",
+      sound: "Kuh",
+      examples: ["🔑 Key", "🪁 Kite"],
+      color: "from-teal-400 to-green-500",
+    },
+    {
+      letter: "L",
+      sound: "Luh",
+      examples: ["🦁 Lion", "🍋 Lemon"],
+      color: "from-yellow-300 to-yellow-500",
+    },
+    {
+      letter: "M",
+      sound: "Mmm",
+      examples: ["🐒 Monkey", "🥛 Milk"],
+      color: "from-blue-300 to-blue-500",
+    },
+    {
+      letter: "N",
+      sound: "Nnn",
+      examples: ["👃 Nose", "🪺 Nest"],
+      color: "from-gray-400 to-gray-600",
+    },
+    {
+      letter: "O",
+      sound: "Ah",
+      examples: ["🍊 Orange", "🐙 Octopus"],
+      color: "from-orange-400 to-amber-500",
+    },
+    {
+      letter: "P",
+      sound: "Puh",
+      examples: ["🐧 Penguin", "🍍 Pineapple"],
+      color: "from-emerald-400 to-green-600",
+    },
+    {
+      letter: "Q",
+      sound: "Kwuh",
+      examples: ["👑 Queen", "❓ Question"],
+      color: "from-violet-400 to-purple-600",
+    },
+    {
+      letter: "R",
+      sound: "Rrr",
+      examples: ["🐇 Rabbit", "🌈 Rainbow"],
+      color: "from-red-400 to-orange-500",
+    },
+    {
+      letter: "S",
+      sound: "Sss",
+      examples: ["🐍 Snake", "☀️ Sun"],
+      color: "from-yellow-400 to-amber-500",
+    },
+    {
+      letter: "T",
+      sound: "Tuh",
+      examples: ["🐯 Tiger", "🌳 Tree"],
+      color: "from-green-400 to-emerald-600",
+    },
+    {
+      letter: "U",
+      sound: "Uh",
+      examples: ["☂️ Umbrella", "🦄 Unicorn"],
+      color: "from-blue-400 to-cyan-500",
+    },
+    {
+      letter: "V",
+      sound: "Vuh",
+      examples: ["🎻 Violin", "🌋 Volcano"],
+      color: "from-purple-400 to-indigo-600",
+    },
+    {
+      letter: "W",
+      sound: "Wuh",
+      examples: ["🍉 Watermelon", "🐋 Whale"],
+      color: "from-sky-400 to-blue-600",
+    },
+    {
+      letter: "X",
+      sound: "Ks",
+      examples: ["❌ X-ray", "🦊 Fox"],
+      color: "from-gray-400 to-slate-600",
+    },
+    {
+      letter: "Y",
+      sound: "Yuh",
+      examples: ["🧶 Yarn", "🛳️ Yacht"],
+      color: "from-pink-300 to-pink-500",
+    },
+    {
+      letter: "Z",
+      sound: "Zzz",
+      examples: ["🦓 Zebra", "⚡ Zigzag"],
+      color: "from-indigo-400 to-purple-500",
     },
   ];
 
@@ -51,13 +191,18 @@ export default function Phonics() {
         <div
           className={`bg-gradient-to-br ${current.color} rounded-3xl p-8 text-center shadow-xl`}
         >
-          <div className="text-8xl text-white font-bold mb-4">{current.letter}</div>
+          <div className="text-8xl text-white font-bold mb-4">
+            {current.letter}
+          </div>
           <button
             type="button"
+            onClick={() => speak(`${current.letter}. ${current.sound}`)}
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-purple-600" />
-            <span className="font-bold text-purple-800">Say "{current.sound}"</span>
+            <span className="font-bold text-purple-800">
+              Say "{current.sound}"
+            </span>
           </button>
         </div>
 
@@ -65,9 +210,9 @@ export default function Phonics() {
           <h3 className="text-sm font-bold text-purple-700">
             Words with {current.letter}:
           </h3>
-          {current.examples.map((example, idx) => (
+          {current.examples.map((example) => (
             <div
-              key={idx}
+              key={example}
               className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-md hover:shadow-lg transition-shadow"
             >
               <div className="text-3xl">{example.split(" ")[0]}</div>
@@ -76,6 +221,7 @@ export default function Phonics() {
               </div>
               <button
                 type="button"
+                onClick={() => speak(example.split(" ").slice(1).join(" "))}
                 className="ml-auto w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"
               >
                 <Volume2 className="w-5 h-5 text-purple-600" />

@@ -72,7 +72,9 @@ export default function Words() {
         <div
           className={`bg-gradient-to-br ${current.color} rounded-3xl p-6 text-center shadow-xl`}
         >
-          <div className="text-5xl text-white font-bold mb-4">{current.word}</div>
+          <div className="text-5xl text-white font-bold mb-4">
+            {current.word}
+          </div>
           <div className="flex justify-center gap-2 mb-4">
             {current.letters.map((letter, idx) => (
               <div
@@ -88,7 +90,9 @@ export default function Words() {
             className="bg-white/90 px-6 py-3 rounded-full flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
           >
             <Volume2 className="w-5 h-5 text-green-600" />
-            <span className="font-bold text-green-800">Say "{current.word}"</span>
+            <span className="font-bold text-green-800">
+              Say "{current.word}"
+            </span>
           </button>
         </div>
 
@@ -116,9 +120,7 @@ export default function Words() {
                   }`}
                 >
                   {option}
-                  {isSelected && isCorrect && (
-                    <div className="text-xl">✓</div>
-                  )}
+                  {isSelected && isCorrect && <div className="text-xl">✓</div>}
                 </button>
               );
             })}
