@@ -1,5 +1,5 @@
 import { ArrowLeft, Volume2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type MutableRefObject } from "react";
 import { useNavigate } from "react-router";
 
 /** Letter clips in `src/app/sounds/{Letter}.mp3` — same bundle as Phonics. */
@@ -17,9 +17,52 @@ const letterSoundUrl = (letter: string): string | undefined => {
   return undefined;
 };
 
+const getAudioContextClass = (): (typeof AudioContext) | null => {
+  if (typeof window === "undefined") return null;
+  return window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext ?? null;
+};
+
+/** Short synthetic clap burst (user gesture unlocks AudioContext on first tap). */
+async function playApplauseSfx(sfxCtxRef: MutableRefObject<AudioContext | null>) {
+  if (typeof window === "undefined") return;
+  const AC = getAudioContextClass();
+  if (!AC) return;
+  if (!sfxCtxRef.current) sfxCtxRef.current = new AC();
+  const ctx = sfxCtxRef.current;
+  if (ctx.state === "suspended") await ctx.resume();
+
+  const t0 = ctx.currentTime;
+  const claps = 28;
+  for (let i = 0; i < claps; i++) {
+    const start = t0 + Math.random() * 0.55 + i * 0.028;
+    const duration = 0.035 + Math.random() * 0.028;
+    const n = Math.ceil(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, n, ctx.sampleRate);
+    const ch = buffer.getChannelData(0);
+    for (let j = 0; j < n; j++) {
+      ch[j] = (Math.random() * 2 - 1) * (1 - j / n) ** 0.6;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 900 + Math.random() * 1400;
+    bp.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(0.22 + Math.random() * 0.12, start + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(ctx.destination);
+    src.start(start);
+  }
+}
+
 export default function Words() {
   const navigate = useNavigate();
   const letterAudioRef = useRef<HTMLAudioElement | null>(null);
+  const sfxCtxRef = useRef<AudioContext | null>(null);
   const [currentWord, setCurrentWord] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [pendingAdvance, setPendingAdvance] = useState(false);
@@ -179,12 +222,18 @@ export default function Words() {
     if (pendingAdvance) return;
     setSelectedAnswer(idx);
     if (idx === current.correct) {
+      letterAudioRef.current?.pause();
+      letterAudioRef.current = null;
+      window.speechSynthesis.cancel();
+      void playApplauseSfx(sfxCtxRef);
       setPendingAdvance(true);
       setTimeout(() => {
         setCurrentWord((w) => (w < words.length - 1 ? w + 1 : w));
         setSelectedAnswer(null);
         setPendingAdvance(false);
       }, 1500);
+    } else {
+      speak("Oh no!");
     }
   };
 
