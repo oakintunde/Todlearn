@@ -8,14 +8,26 @@ import {
 } from "react";
 import { useNavigate } from "react-router";
 
+/**
+ * Trace & Learn — child traces over a large faint letter (A–Z) or digit string (`1`–`10`) on canvas.
+ *
+ * **Drawing** — Mouse and touch; `canvasCoords` maps viewport → canvas pixels. Green stroke; template is CSS-layer only (not erased).
+ * **Completion** — The first `draw` in a fresh canvas starts a one-shot 2s timer, then `completed` shows “Great Job” (reset via clear / next / mode change).
+ * **Mode** — Switching letters/numbers resets index to 0 and clears the canvas.
+ */
 export default function Tracing() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"letters" | "numbers">("letters");
+  /** Index into `letters` or `numbers` depending on `mode`. */
   const [currentIndex, setCurrentIndex] = useState(0);
+  /** Celebration overlay after the 2s post-first-draw timer fires. */
   const [completed, setCompleted] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** 2D context from mount `useEffect`; line style preset there. */
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
+  /** `setTimeout` id for the 2s “done tracing” debounce, or null. */
   const completionTimerRef = useRef<number | null>(null);
+  /** True between pointer/touch down and up (per gesture). */
   const isDrawingRef = useRef(false);
 
   const letters = [
@@ -51,6 +63,7 @@ export default function Tracing() {
   const items = mode === "letters" ? letters : numbers;
   const current = items[currentIndex];
 
+  /** Grab canvas 2D context once (fixed 300×300 buffer). */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -63,6 +76,7 @@ export default function Tracing() {
     }
   }, []);
 
+  /** Cancel pending “trace complete” timeout (e.g. on reset or new stroke logic). */
   const clearCompletionTimer = () => {
     if (completionTimerRef.current !== null) {
       window.clearTimeout(completionTimerRef.current);
@@ -70,6 +84,7 @@ export default function Tracing() {
     }
   };
 
+  /** Pointer position in canvas pixel space (accounts for CSS scaling vs `canvas.width`). */
   const canvasCoords = (
     e: MouseEvent<HTMLCanvasElement> | TouchEvent<HTMLCanvasElement>,
   ) => {
@@ -93,6 +108,7 @@ export default function Tracing() {
     return { x: 0, y: 0 };
   };
 
+  /** Begin stroke; `touchstart` calls `preventDefault` to reduce scroll while drawing. */
   const startDrawing = (
     e: MouseEvent<HTMLCanvasElement> | TouchEvent<HTMLCanvasElement>,
   ) => {
@@ -104,6 +120,7 @@ export default function Tracing() {
     ctx.moveTo(x, y);
   };
 
+  /** Extend stroke; first paint schedules the 2s “Great Job” timer (see module doc). */
   const draw = (
     e: MouseEvent<HTMLCanvasElement> | TouchEvent<HTMLCanvasElement>,
   ) => {
@@ -122,10 +139,12 @@ export default function Tracing() {
     }
   };
 
+  /** End current stroke segment (pointer up / leave / touch end). */
   const stopDrawing = () => {
     isDrawingRef.current = false;
   };
 
+  /** Clear ink, completion overlay, and idle timer. */
   const resetCanvas = () => {
     clearCompletionTimer();
     isDrawingRef.current = false;
@@ -135,6 +154,7 @@ export default function Tracing() {
     }
   };
 
+  /** Advance within current mode; clears canvas for the next glyph. */
   const handleNext = () => {
     if (currentIndex < items.length - 1) {
       setCurrentIndex((i) => i + 1);
@@ -142,6 +162,7 @@ export default function Tracing() {
     }
   };
 
+  /** Letters ↔ numbers: restart at first item and wipe canvas. */
   const handleModeChange = (newMode: "letters" | "numbers") => {
     setMode(newMode);
     setCurrentIndex(0);

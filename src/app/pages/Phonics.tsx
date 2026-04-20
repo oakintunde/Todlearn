@@ -3,8 +3,14 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 /**
- * Letter clips in `src/app/sounds/{Letter}.mp3` (e.g. `A.mp3`).
- * Resolved at build time via Vite; add a file per letter you need.
+ * Learn Phonics — letter carousel: big glyph, letter sound, and example words.
+ *
+ * **Audio**
+ * - Hero “Say sound”: `src/app/sounds/{Letter}.mp3` (Vite glob below); TTS fallback `${letter}. ${phonemeHint}`.
+ * - Example row speakers: TTS for the vocabulary word only (`exampleWord` strips the leading emoji token).
+ * - `letterAudioRef` is paused whenever `speak` runs so MP3 and speech do not overlap.
+ *
+ * **Data** — `letters[]`: `letter` (A–Z), `sound` UI label / fallback hint, `examples` like `🍎 Apple`, Tailwind `color`.
  */
 const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
   eager: true,
@@ -12,6 +18,7 @@ const letterSoundUrls = import.meta.glob<string>("../sounds/*.mp3", {
   import: "default",
 });
 
+/** Bundled URL for `Letter.mp3` (paths are build-resolved; add files under `src/app/sounds/` as needed). */
 const letterSoundUrl = (letter: string): string | undefined => {
   const suffix = `${letter}.mp3`;
   for (const [path, url] of Object.entries(letterSoundUrls)) {
@@ -26,9 +33,12 @@ const exampleWord = (example: string) =>
 
 export default function Phonics() {
   const navigate = useNavigate();
+  /** Index into `letters`. */
   const [currentLetter, setCurrentLetter] = useState(0);
+  /** Active letter MP3, if any; cleared when TTS runs. */
   const letterAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  /** TTS after stopping any letter clip. */
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     letterAudioRef.current?.pause();
@@ -40,6 +50,7 @@ export default function Phonics() {
     window.speechSynthesis.speak(utterance);
   };
 
+  /** Play `{Letter}.mp3` or TTS letter + `phonemeHint` on error/missing file. */
   const playLetterSound = (letter: string, phonemeHint: string) => {
     if (typeof window === "undefined") return;
     window.speechSynthesis.cancel();
@@ -77,10 +88,13 @@ export default function Phonics() {
     );
   };
 
+  /** Speak the example vocabulary (not the letter clip). */
   const speakExampleWord = (example: string) => {
     const word = exampleWord(example);
     if (word) speak(word);
   };
+
+  /** Curriculum: one entry per letter A–Z order in the UI. */
   const letters = [
     {
       letter: "A",

@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router";
 import { BookOpen, Hash, Type, Pen } from "lucide-react";
 
+/**
+ * Home — activity hub. Each `path` must match a route in `src/app/routes.ts` (e.g. `/numbers` → Numbers).
+ * The progress row is decorative UI only (not wired to persistence yet).
+ */
 const menuItems = [
   {
     path: "/phonics",
@@ -32,6 +36,7 @@ const menuItems = [
   },
 ] as const;
 
+/** Renders the 2×2 launcher and navigates with `react-router`. */
 export default function Home() {
   const navigate = useNavigate();
 

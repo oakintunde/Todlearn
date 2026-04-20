@@ -2,9 +2,18 @@ import { ArrowLeft, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 
+/**
+ * Learn Numbers — digit + English word + “count” row of emojis for 1–10.
+ *
+ * **Audio** — `Say` uses `speechSynthesis` on the word only (`current.word`), not digit+word.
+ * **Navigation** — starts at index `0` (One) when opened from home; prev/next and dot strip jump within `numbers`.
+ */
 export default function Numbers() {
   const navigate = useNavigate();
-  const [currentNumber, setCurrentNumber] = useState(2);
+  /** Index into `numbers`; `0` is One. */
+  const [currentNumber, setCurrentNumber] = useState(0);
+
+  /** US English TTS; cancels any in-progress utterance before speaking. */
   const speak = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -13,6 +22,8 @@ export default function Numbers() {
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   };
+
+  /** Static slides: digit `num`, spoken `word`, counter `emoji`, card `color` (Tailwind gradient). */
   const numbers = [
     {
       num: 1,
@@ -58,10 +69,12 @@ export default function Numbers() {
 
   const current = numbers[currentNumber];
 
+  /** Previous slide; no-op when already on One. */
   const handlePrev = () => {
     setCurrentNumber((prev) => (prev > 0 ? prev - 1 : prev));
   };
 
+  /** Next slide; no-op on Ten. Dot strip sets index directly. */
   const handleNext = () => {
     setCurrentNumber((prev) => (prev < numbers.length - 1 ? prev + 1 : prev));
   };
